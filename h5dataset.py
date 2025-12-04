@@ -10,7 +10,7 @@ class h5set(torch.utils.data.Dataset):
         super().__init__()
         self.path = path
         self.dataset = None
-        with h5.File(name=self.path,mode="r") as f:
+        with h5.File(name=self.path,mode="r", libver="latest", locking=False) as f:
             self.groups = list(f.keys())
             self.single_lengths = [len(f[g]) for g in self.groups]
             if train:
