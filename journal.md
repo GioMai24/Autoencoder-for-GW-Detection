@@ -64,4 +64,6 @@ Ho creato un nuovo conda env `killgg` per testare il pacchetto senza HDF5 builda
 
 LSTM recurrent network? idk sto cercando di copiare la architettura di moreno per capire un po'. Non capisco una sega da pytorch docs. Fixed dataset class e dataloader perchè traineremo AE solo con noise. TO DO: fix git shit. Fixed git shit. Capito un po' meno come ha fatto l'arkitettura il king eric moreno. letto lstm fino a sboccare.
 
+## Gio, 4/12
 
+Forse ho capito come funziona un nn.LSTM dovrebbe essere un'intera rete, per utilizzare un solo strato si può usare nn.LSTMCell (do not). Siccome ha un output strano ed è già una sequenza di layer, non si può mettere in nn.Sequential. In model.ipynb sul mio branch ci sono gli appunti sulla mia ricerca. Come al solito mi metto a scrivere il journal quando ho 30 secondi rimasti. Addio.
