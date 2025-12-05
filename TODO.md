@@ -7,4 +7,5 @@ Come utilizziamo i dati dai due rilevatori?
 
 # Architettura
 
-Sì
+1. Capire bene come funziona un layer di LSTM e come integrarlo nell'autoencoder.
+2. Cercare architetture interessanti da cui prendere ispirazione.
