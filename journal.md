@@ -67,3 +67,7 @@ LSTM recurrent network? idk sto cercando di copiare la architettura di moreno pe
 ## Gio, 4/12
 
 Forse ho capito come funziona un nn.LSTM dovrebbe essere un'intera rete, per utilizzare un solo strato si può usare nn.LSTMCell (do not). Siccome ha un output strano ed è già una sequenza di layer, non si può mettere in nn.Sequential. In model.ipynb sul mio branch ci sono gli appunti sulla mia ricerca. Come al solito mi metto a scrivere il journal quando ho 30 secondi rimasti. Addio.
+
+## Gio, 7/12
+
+Aggiunto il repeating vector al model.ipynb in branch gio (secondo me dovremmo dare i nomi intelligenti ai branch). Ho fatto un po' di magheggi per spostare l'asse dei batch nei tensori e metterlo al primo posto, ma comunque l'output degli LSTM ha le dimensioni tutte storte e brutte, quindi penso che dipenderà da come imposteremo il tutto alla fine. Ora sto investigando l'ultimo layer del paper che è il TimeDistributed, non è implementato nativamente in PyTorch, penso proprio che dovremo fare una cosa custom. Da quello che ho capito è una collezione di layer densi: ognuno dei 32 canali di output del LSTM decoder ha una "rete neurale" con i 100 valori delle serie (un solo layer di sta roba). Potrebbe essere viceversa e potrei sbagliarmi.
