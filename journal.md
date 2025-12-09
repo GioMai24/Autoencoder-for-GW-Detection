@@ -67,3 +67,7 @@ LSTM recurrent network? idk sto cercando di copiare la architettura di moreno pe
 ## Gio, 4/12
 
 Forse ho capito come funziona un nn.LSTM dovrebbe essere un'intera rete, per utilizzare un solo strato si può usare nn.LSTMCell (do not). Siccome ha un output strano ed è già una sequenza di layer, non si può mettere in nn.Sequential. In model.ipynb sul mio branch ci sono gli appunti sulla mia ricerca. Come al solito mi metto a scrivere il journal quando ho 30 secondi rimasti. Addio.
+
+## Gigi, 9/12
+
+sto implementando l'AE di moreno su pytorch, ho implementato quella cosa che prende solo time-window di 100 alla volta, spero nel modo giusto. Ho fatto una bella architettura di base come implementazione. Vorrei riuscire a far andare il training in qualche giorno.
