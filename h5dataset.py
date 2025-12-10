@@ -18,7 +18,7 @@ class h5set(Dataset):
         if self.dataset is None:
             self.dataset = h5.File(self.path, 'r', libver='latest', locking=False)
         item = self.dataset[self.name][idx]
-        return torch.from_numpy(item)
+        return torch.tensor(item, dtype=torch.float32)
 
 ## 325k noise --> 25k test, 75k val, 225k train
 # 25k test
