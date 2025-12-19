@@ -75,4 +75,7 @@ Aggiunto il repeating vector al model.ipynb in branch gio (secondo me dovremmo d
 ## Gigi, 9/12
 sto implementando l'AE di moreno su pytorch, ho implementato quella cosa che prende solo time-window di 100 alla volta, spero nel modo giusto. Ho fatto una bella architettura di base come implementazione. Vorrei riuscire a far andare il training in qualche giorno.
 
+## Gigi 19/12
+
+wow sove sono finiti i gli ultimi 10 giorni. Sto facendo esperimenti sulla sliding window. Mi sembra di aver capito che ci sono 2 approcci alle RNN o forse solo alle LSTM, stateful e stateless. Stateless sembra essere ok e più facile da implementare. 
 
