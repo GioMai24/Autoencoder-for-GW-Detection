@@ -3,10 +3,12 @@ from torch.utils.data import Dataset
 import h5py as h5
 
 class h5set(Dataset):
-    def __init__(self, path, name='noise'):
+    def __init__(self, path, win_len, win_stride, name='noise'):
         super().__init__()
         self.path = path
         self.name = name
+        self.win_len = win_len
+        self.win_stride = win_stride
         self.dataset = None
         with h5.File(path, mode="r", libver="latest", locking=False) as f:
             self.length = len(f[name])
@@ -18,7 +20,7 @@ class h5set(Dataset):
         if self.dataset is None:
             self.dataset = h5.File(self.path, 'r', libver='latest', locking=False)
         item = self.dataset[self.name][idx]
-        return torch.tensor(item, dtype=torch.float32)
+        return torch.tensor(item, dtype=torch.float32).unfold(0, self.win_len, self.win_stride)
 
 
 class h6set(Dataset):
