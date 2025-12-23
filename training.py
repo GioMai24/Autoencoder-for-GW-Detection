@@ -37,4 +37,4 @@ for epoch in range(1, num_epochs + 1):
                     'optimizer_state_dict': optimizer.state_dict()
                     }, f'/mnt/runs/model_optim_weights/model_optim_{epoch}.pt')
 
-        with open(f'/mnt/runs/losses/loss_{epoch}.pickle', 'wb') as fout: pickle.dump(losses, fout, protocol=-1)
+    with open(f'/mnt/runs/losses/loss_{epoch}.pickle', 'wb') as fout: pickle.dump(losses, fout, protocol=-1)
