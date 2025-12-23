@@ -14,7 +14,20 @@ def traingio(model, device, dataloader, loss_fn, optim):
         loss.backward()
         optim.step()
         # loss = np.sqrt(loss.item()) # if need
-        epoch_loss += loss
+        epoch_loss += loss.item()
+    return epoch_loss / len(dataloader)
+
+
+def evalgio(model, device, dataloader, loss_fn):
+    model.eval()
+    epoch_loss = 0.
+    with torch.no_grad():
+        for batch_data in tqdm(test_loader):
+            batch_data = batch_data.reshape(-1, 100, 1).to(device)
+            output = model(batch_data)
+            loss = loss_fn(output, data)
+            # loss = np.sqrt(loss.item())
+            epoch_loss += loss.item()
     return epoch_loss / len(dataloader)
 
 
