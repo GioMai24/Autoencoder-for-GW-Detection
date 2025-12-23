@@ -102,13 +102,13 @@ class EricGio(nn.Module):
 
     def forward(self, x):
         # Encoding
-        print(f'Input {x.shape=}')
+        # print(f'Input {x.shape=}')
         x, _ = self.El1(x)  # Send whole output (corresponds to 100x32 in paper)
-        print(f"First LSTM out {x.shape=}")
+        # print(f"First LSTM out {x.shape=}")
         
             ## gg El2
         x, _ = self.El2(x)  ## gg method
-        print(f"Second LSTM out {x[:,-1,:].shape=}")
+        # print(f"Second LSTM out {x[:,-1,:].shape=}")
 
             ## gio El2
         # _, (x, _) = self.El2(x)  # Send last output (corresponds to whole[-1], has 1 value for each layer (3)) I guess the paper takes only the last of these x[-1]
@@ -116,19 +116,19 @@ class EricGio(nn.Module):
 
         # Repeating
         # x = x[-1].unsqueeze(1).repeat(1, 100, 1)  # Tensor.unsqueeze(x) adds a dimension to x position, to have batch dim back.  ## gio method
-        x = x[:, -1, :].repeat(1, 100, 1)  ## gg method
-        print(f"Repeated {x.shape=}")
+        x = x[:, -1, :].unsqueeze(1).repeat(1, 100, 1)  ## gg method
+        # print(f"Repeated {x.shape=}")
 
         # Decoding
-        print("Decoding")
+        # print("Decoding")
         x, _ = self.Dl1(x)
-        print(f"First LSTM out {x.shape=}")
+        # print(f"First LSTM out {x.shape=}")
         x, _ = self.Dl2(x)
-        print(f"Second LSTM out {x.shape=}")
+        # print(f"Second LSTM out {x.shape=}")
         x = torch.movedim(x, 1, 2)
-        print(f"3D transposed {x.shape=}")
+        # print(f"3D transposed {x.shape=}")
         x = self.TimeDistributed(x)
-        print(f'Convoluted {x.shape=}')
+        # print(f'Convoluted {x.shape=}')
         x = torch.movedim(x, 1, 2)
-        print(f'Back to original dim {x.shape=}')
+        # print(f'Back to original dim {x.shape=}')
         return x
