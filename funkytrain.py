@@ -1,9 +1,10 @@
 import numpy as np
+from tqdm import tqdm
 
 def traingio(model, device, dataloader, loss_fn, optim):
     model.train()
     epoch_loss = 0
-    for batch_data in dataloader:
+    for batch_data in tqdm(dataloader):
         optim.zero_grad()
         # print(batch_data.element_size() * batch_data.nelement())
         batch_data = batch_data.reshape(-1, 100, 1).to(device)
