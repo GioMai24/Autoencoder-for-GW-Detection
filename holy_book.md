@@ -80,7 +80,7 @@ sto implementando l'AE di moreno su pytorch, ho implementato quella cosa che pre
 wow sove sono finiti i gli ultimi 10 giorni. Sto facendo esperimenti sulla sliding window. Mi sembra di aver capito che ci sono 2 approcci alle RNN o forse solo alle LSTM, stateful e stateless. Stateless sembra essere ok e più facile da implementare. 
 
 ## Gio, 24/12
-Ieri ho avviato un training della rete, solo gli dèi sanno se il dataset, l'architettura e il codice del training abbia senso. Stamattina sono andato a controllare e dopo un'ora si è interrotto perché avevo dimenticato di caricare il validation set lol. File touchati:
+Ieri ho avviato un training della rete, solo gli dèi sanno se il dataset, l'architettura e il codice del training abbiano senso. Stamattina sono andato a controllare e dopo un'ora si era interrotto perché avevo dimenticato di caricare il validation set lol. File touchati:
 1. `automobili.py`: contiene le classi delle reti che implementiamo.
 2. `funkytrain.py`: contiene le funzioni per trainare (`traingio`, `evalgio`, `trainepoch`...)
 3. `training.py`: script per trainare.
@@ -89,6 +89,6 @@ Ieri ho avviato un training della rete, solo gli dèi sanno se il dataset, l'arc
 6. `net.ipynb`: l'ho usato più che altro per testare il codice mentre lavoravo alle architetture e al codice del training, non so in che condizioni l'ho lasciato.
 7. Sto per spostare il `journal.md` in sacred_tree:readme come `holy_book.md`. Questo mi invoglierà a scrivere il journal e non intasiamo il main per scrivere.
 
-Also ho pushato della roba dalla vm, github prende user.email e user.name per pushare, quindi ho pushato tutto come gg. Che stupido gg hai fatto un errore grammaticale nell'ultimo commit di paperAE
+Also ho pushato della roba dalla vm, github prende user.email e user.name per pushare, quindi ho pushato tutto come gg. Che stupido, gg hai fatto un errore grammaticale nell'ultimo commit di paperAE
 
-Detto ciò se vedò altri aggiornamenti del journal nel main, sarò molto deluso.
+Detto ciò se vedrò altri aggiornamenti del journal nel main, sarò molto deluso.
