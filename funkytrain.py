@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+import torch
 
 def traingio(model, device, dataloader, loss_fn, optim):
     model.train()
