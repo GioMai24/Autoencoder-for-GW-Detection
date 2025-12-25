@@ -24,20 +24,14 @@ loss_func = nn.MSELoss()
 lr = 1e-3
 optim = torch.optim.Adam(AE.parameters(), lr=lr)
 
-
-
 num_epochs = 100
 losses = {'train':[], 'test':[]}
 for epoch in range(1, num_epochs + 1):
-    ### Training (use the training function)
     train_loss = traingio(model=AE, device=device, dataloader=training, loss_fn=loss_func, optim=optim)
     losses['train'].append(train_loss)
     val_loss = evalgio(model=AE, device=device, dataloader=validation, loss_fn=loss_func)
     losses['test'].append(val_loss)
-    print(f'TRAIN - EPOCH {epoch+1}/{num_epochs} - loss: {train_loss} - test loss: {val_loss}')
-    if epoch % 10 == 0 or epoch == num_epochs: 
-            torch.save({'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict()
-                    }, f'/mnt/eph/runs/model_optim_weights/model_optim_{epoch}.pt')
-
-    with open(f'/mnt/eph/runs/losses/loss_{epoch}.pickle', 'wb') as fout: pickle.dump(losses, fout, protocol=-1)
+    print(f'TRAIN - EPOCH {epoch}/{num_epochs} - loss: {train_loss} - test loss: {val_loss}')
+    if epoch % 10 == 0 or epoch == num_epochs:
+        torch.save({'model_state_dict': AE.state_dict(), 'optimizer_state_dict': optim.state_dict()}, f'/mnt/eph/runs/model_optim_weights/model_optim_{epoch}.pt')
+        with open(f'/mnt/eph/runs/losses/loss_{epoch}.pickle', 'wb') as fout: pickle.dump(losses, fout, protocol=-1)

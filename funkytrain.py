@@ -23,10 +23,10 @@ def evalgio(model, device, dataloader, loss_fn):
     model.eval()
     epoch_loss = 0.
     with torch.no_grad():
-        for batch_data in tqdm(test_loader):
+        for batch_data in tqdm(dataloader):
             batch_data = batch_data.reshape(-1, 100, 1).to(device)
             output = model(batch_data)
-            loss = loss_fn(output, data)
+            loss = loss_fn(output, batch_data)
             # loss = np.sqrt(loss.item())
             epoch_loss += loss.item()
     return epoch_loss / len(dataloader)
