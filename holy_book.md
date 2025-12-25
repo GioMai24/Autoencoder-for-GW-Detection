@@ -92,3 +92,7 @@ Ieri ho avviato un training della rete, solo gli dèi sanno se il dataset, l'arc
 Also ho pushato della roba dalla vm, github prende user.email e user.name per pushare, quindi ho pushato tutto come gg. Che stupido, gg hai fatto un errore grammaticale nell'ultimo commit di paperAE
 
 Detto ciò se vedrò altri aggiornamenti del journal nel main, sarò molto deluso.
+
+
+## Gio, 25/12
+Il training si è interrotto di nuovo perché ho sbagliato a scrivere, ora dovrebbe essere tutto a posto di nuovo... Spero... Dovrei provare a fare meglio le cose. Comunque vorrei settare optuna, quindi cose...
