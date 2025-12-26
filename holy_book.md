@@ -96,3 +96,7 @@ Detto ciò se vedrò altri aggiornamenti del journal nel main, sarò molto delus
 
 ## Gio, 25/12
 Il training si è interrotto di nuovo perché ho sbagliato a scrivere, ora dovrebbe essere tutto a posto di nuovo... Spero... Dovrei provare a fare meglio le cose. Comunque vorrei settare optuna, quindi cose... Ho **cominciato** a setuppare optuna in un tempo morto in paperAE.WIPoptuna. Ho preso da galaxyclassifier e cambiato alcune cose, ma è ancora molto da cambiare.
+
+## Gigi, 26/12
+
+Recuperato i progressi di Gio, rinominato il branch in TimeEmbeddedAE, raggruppato, pulito, working on optuna shit. 
