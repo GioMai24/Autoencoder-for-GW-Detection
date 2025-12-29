@@ -104,3 +104,7 @@ Recuperato i progressi di Gio, rinominato il branch in TimeEmbeddedAE, raggruppa
 ## Gigi, 28/12
 
 Allora ho finito il modello e messo a runnare, era lentissimo. Cercato cose per speedare il training. A quanto pare la T4 attiva i tensor cores meglio quando le dimensioni dei tensori sono multipli di 8 (fatto). A quanto pare tu puoi chiedere che pytorch faccia un benchmark dei migliori grafi da seguire per le operazioni a seconda del tuo hardware (messo). Poi ho messo precisione mista coi float16 perchè la T4 le supporta coi fp16. poi ho fatto altre cose tipo messo tqdm, lanciato optuna, selezionato alcuni parametri e boh. Ci mette 2 ore e mezza per epoca. tecnicamente. Ah ecco perchè, ho ridotto il training a un terzo. non il validation ops. forse se aumentassi lo stride sarebbe più svelta ma boh. see u later alligator. 
+
+## Gigi, 29/12
+
+Ho suddiviso L1_c.h5 in un HDF5 file con 3 dataset interni, A,B,C. A usabile come train, 50k righe prese da noise. B usabile come validation set 10k righe prese da noise. C usabile come test 10k righe le prime 5000 da noise le seconde 5000 da injection. Il file su git dice che shuffla ma in realtà il file finale che ho usato è nella cartella /mnt/eph/data e ho tolto la parte in cui shuffla.
