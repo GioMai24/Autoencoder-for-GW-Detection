@@ -108,3 +108,7 @@ Allora ho finito il modello e messo a runnare, era lentissimo. Cercato cose per 
 ## Gigi, 29/12
 
 Ho suddiviso L1_c.h5 in un HDF5 file con 3 dataset interni, A,B,C. A usabile come train, 50k righe prese da noise. B usabile come validation set 10k righe prese da noise. C usabile come test 10k righe le prime 5000 da noise le seconde 5000 da injection. Il file su git dice che shuffla ma in realtà il file finale che ho usato è nella cartella /mnt/eph/data e ho tolto la parte in cui shuffla.
+
+## Gigi, 30/12
+
+Optunato, con il Subset fatto il 29/12. Selezionato un best model con best vloss 0.013 circa. Allenato per altre 225 epoche (250 totali), ma ha raggiunto un minimo a 0.0127 circa nelle prime 70 epoche e di li non si è più mosso. Ritenuto che ill modello fosse troppo poco profondo. Per cui Rifatto subset usando le prime 88k righe di L1/noise e le prime 6k righe di L1/injection, suddivide in 70k di righe noise x train set, 12k righe noise x validation set, 6k righe noise + 6k righe injection per test set. Il dataset si chiama L1_70_12_6_6.h5. Rifatto studio optuna impostando differenti parametri quali il numero di layer, lo stride e altre cose. Poi ho pensato che probabilmente l'apporccio che ho seguito per comparare sample dell'AE e sample del dataset non è ottimale: infatti se la differenza è limitata a un segnale che dura circa mezzo secondo forse sarebbe meglio invece di confrontare direttamente sample di 8 secondi, confrontare i sample a pezzi tipo? da capire bene.
