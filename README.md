@@ -4,4 +4,4 @@
 - `devel`: running development code.
 - `paperAE`: Eric Moreno AE implementation.
 - `paperAE.WIPoptuna`: optuning. ABSOLUTELY NOT FINISHED WORK.
-- `TimeEmbeddedAE`: TimeEmbedded AE, the multifeats one. Currently optuning. WIP 
+- `TimeEmbeddedAE`: TimeEmbedded AE, the multifeats one. Doing good thx 
