@@ -118,3 +118,7 @@ Optunato, con il Subset fatto il 29/12. Selezionato un best model con best vloss
 Buon anno da CloudVeneto!!!
 Allora ho trainato modelli più profondi, ovvero con il doppio/triplo dei layers, ma sembra che con questo dataset il minimo di loss che si possa raggiungere è tipo 0.012. Ho anche provato ad allenare i best model secondo optuna (due studi ho fatto) per 250 epoche ma non sono evoluti, la loss è rimasta stazionaria. 
 Per la parte di test, confrontare tramite MSELoss due sample interi è abbastanza inutile perchè l'errore del segnale si diluisce nel noise di tutto il sample. Per cui ho fatto che si calcola la MSELoss per ogni finestra. Così ho ottenuto dei risultati. C'è ancora un problema secondo me: ovvero la i-esima finestra dell'input è confrontata con la i-esima finestra dell'output. Se la rete ha imparato una sorta di struttura magari potremmo avere dei falsi positivi? idk. Sono un po' interdetto dal fatto che sembra che il segnale sia sempre nello stesso punto.
+
+## Gigi, 2/01
+
+Mi sono reso conto che non salvavo il gradScaler state quando optunavo, per cui i modelli che ho allenato successivamente hanno avuto dei cold start. Per cui ho cancellato tutti i precedenti studi e rifatto un terzo e ultimo studio. Tutto ciò solo per completezza perchè i modelli che avevamo andavano bene actually.
