@@ -122,3 +122,7 @@ Per la parte di test, confrontare tramite MSELoss due sample interi è abbastanz
 ## Gigi, 2/01
 
 Mi sono reso conto che non salvavo il gradScaler state quando optunavo, per cui i modelli che ho allenato successivamente hanno avuto dei cold start. Per cui ho cancellato tutti i precedenti studi e rifatto un terzo e ultimo studio. Tutto ciò solo per completezza perchè i modelli che avevamo andavano bene actually.
+
+## Gigi, 4/01
+
+Gio ha fatto notare che gradient clipping non va daccordo con gradient scaler, per cui ho fixato la cosa. E ho fatto partire il quarto e ultimo (hope so) studio optuna.
