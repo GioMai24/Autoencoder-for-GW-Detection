@@ -126,3 +126,10 @@ Mi sono reso conto che non salvavo il gradScaler state quando optunavo, per cui 
 ## Gigi, 4/01
 
 Gio ha fatto notare che gradient clipping non va daccordo con gradient scaler, per cui ho fixato la cosa. E ho fatto partire il quarto e ultimo (hope so) studio optuna.
+
+## Gio, 4/01
+Helo, there. Sto lavorando su paperAE.WIPoptuna. Su optuner.ipynb ho cominciato a mergiare l'optuna di gg, ho cambiato delle cosine e deve ancora essere finito in attesa che domani ci picchiamo. Passando alle cose importanti (autistiche) ho creato una cartella `custom/` con all'interno tre file:
+1. `__init__.py`: è vuoto, viene chiamato da python ogni volta che il modulo custom viene importato.
+2. `tools.py`: contiene le nostre funzioni e la classe `h5set`.
+3. `models.py`: contiene i modelli.
+Perché? Perché sì. Vorrei dare un ordine alle cose. È opinabile.
