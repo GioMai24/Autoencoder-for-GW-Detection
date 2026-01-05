@@ -83,7 +83,7 @@ def save_everything(model,optimizer, train_loader, val_loader,scaler, losses,epo
     model_state_dict = model.state_dict()
     optimizer_state_dict = optimizer.state_dict()
     scaler_state_dict = scaler.state_dict()
-    num_layers = model.Encoder.El1.num_layers
+    # num_layers = model.Encoder.El1.num_layers
 
     checkpoint = { 'train_set_params': t_set_save,
                   'train_loader_params': tl_save,
@@ -94,8 +94,8 @@ def save_everything(model,optimizer, train_loader, val_loader,scaler, losses,epo
                   'scaler_state_dict': scaler_state_dict,
                   'losses': losses,
                   'epoch':epoch,
-                  'clip': clip,
-                  'num_layers':num_layers}
+                  'clip': clip}
+                  # 'num_layers':num_layers}
     torch.save(checkpoint, save_path)
 
 
