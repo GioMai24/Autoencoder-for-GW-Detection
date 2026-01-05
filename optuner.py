@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import torch 
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as op
 from torch.amp import GradScaler
 import optuna
+import logging
 import pickle
 from tqdm import tqdm
 # custom
@@ -20,14 +22,14 @@ else: device = torch.device('cpu')
 print(f'{device=}')
 
 ## Useful parameters:
-batch_size = 256
+batch_size = 64
 num_epochs = 30
 win_len = 100
 win_stride = 60
-num_workers = os.cpu_count()
+num_workers = 10
 persistent_workers = True if num_workers>0 else False
 
-main_dir = "/mnt/eph/uni_feat_model_stuff/"
+main_dir = "/mnt/eph/data/optuna/"
 h5_path = "/mnt/eph/data/L1_70_12_6_6.h5"
 train = tl.h5set(h5_path, win_len=win_len, win_stride=win_stride, name='A')
 val = tl.h5set(h5_path, win_len=win_len, win_stride=win_stride, name='B')
@@ -36,7 +38,7 @@ train_loader = DataLoader(train, batch_size=batch_size, pin_memory=True, num_wor
 val_loader = DataLoader(val, batch_size=batch_size, pin_memory=True, num_workers=num_workers, persistent_workers=persistent_workers)
 
 ## DB
-optuna_url = f"sqlite:///{main_dir}CanOTuna.db"
+optuna_url = f"sqlite:///{main_dir}optuna_study.db"
 artifact_path = f"{main_dir}artifacts/"
 artifact_store = optuna.artifacts.FileSystemArtifactStore(base_path=artifact_path)
 
@@ -80,5 +82,5 @@ def objective(trial:optuna.Trial):
 
 optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
 # to change model, just change study_name, don't touch storage
-study = optuna.create_study(direction='minimize', study_name='Univariate_Eric', storage=optuna_url, load_if_exists=True)
+study = optuna.create_study(direction='minimize', study_name='UnivariatEric', storage=optuna_url, load_if_exists=True)
 study.optimize(objective, n_trials=30)

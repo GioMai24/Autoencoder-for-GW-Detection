@@ -36,7 +36,7 @@ def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multiva
         # print(batch_data.element_size() * batch_data.nelement())
         batch_data = batch_data.to(device) if multivariate else batch_data.reshape(-1, 100, 1).to(device)
         # print(batch_data.shape)
-        with torch.autocast(device=str(device), dtype=torch.float16):
+        with torch.autocast(device_type=str(device), dtype=torch.float16):
             output = model(batch_data)
             loss = loss_fn(output, batch_data)
         scaler.scale(loss).backward()
@@ -56,7 +56,7 @@ def val_epoch(model, device, dataloader, loss_fn, multivariate):
     with torch.no_grad():
         for batch_data in tqdm(dataloader):
             batch_data = batch_data.to(device) if multivariate else batch_data.reshape(-1, 100, 1).to(device)
-            with torch.autocast(device=str(device), dtype=torch.float16):
+            with torch.autocast(device_type=str(device), dtype=torch.float16):
                 output = model(batch_data)
                 loss = loss_fn(output, batch_data)
             # loss = np.sqrt(loss.item())
