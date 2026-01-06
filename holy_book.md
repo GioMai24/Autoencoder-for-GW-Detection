@@ -133,3 +133,6 @@ Helo, there. Sto lavorando su paperAE.WIPoptuna. Su optuner.ipynb ho cominciato 
 2. `tools.py`: contiene le nostre funzioni e la classe `h5set`.
 3. `models.py`: contiene i modelli.
 Perché? Perché sì. Vorrei dare un ordine alle cose. È opinabile.
+
+## Gio, 5/01
+Lavorando in `paperAE`. Ho creato del codice per visualizzare la ricostruzione dei modelli (`reconstructions.ipynb`), ho importato in custom/models.py anche il modello di gg per vedere se il suo modello trainato ricostruiva bene. Non sembra ed ho molta paura.
