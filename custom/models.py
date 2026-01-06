@@ -37,3 +37,99 @@ class LSTMAEUni(nn.Module):
         x = torch.movedim(x, 1, 2)
         # print(f'Back to original dim {x.shape=}')
         return x
+
+
+
+class Encoder_Moreno(nn.Module):
+    def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False):
+        super().__init__()
+        ## Useful quantities
+        self.v = v
+        self.sq_len = sq_len
+        self.El1 = nn.LSTM(input_size=num_feat, 
+                           hidden_size=exp_dim,
+                           num_layers=num_layers,
+                           batch_first=True)
+        self.El2 = nn.LSTM(input_size=exp_dim,
+                           hidden_size=compr_dim, 
+                           num_layers=num_layers,
+                           batch_first=True)
+
+    
+    def forward(self, item):
+        if self.v: 
+            print(item.shape, "Input shape")
+            item, h_c = self.El1(item)
+            print(item.shape, "1st encoder layer output shape")
+            item, h_c = self.El2(item)
+            print(item.shape, "2nd encoder layer output shape")
+            item = item[:,-1,:]
+            print(item.shape, "return sequence= False analog")
+            item = item[:,None,:]
+            item = item.repeat(1, self.sq_len, 1)
+            print(item.shape, "repeat vector sq_len times")
+            return item
+        else:
+            item, h_c = self.El1(item)
+            item, h_c = self.El2(item)
+            item = item[:,-1,:]
+            item = item[:,None,:]
+            item = item.repeat(1, self.sq_len,1)
+            return item
+
+
+
+class Decoder_Moreno(nn.Module):
+    def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False):
+        super().__init__()
+        self.v = v
+        ## Useful quantities
+        self.sq_len = sq_len
+        self.Dl1 = nn.LSTM(input_size=compr_dim, 
+                           hidden_size=compr_dim,
+                           num_layers=num_layers,
+                           batch_first=True)
+        self.Dl2 = nn.LSTM(input_size=compr_dim,
+                           hidden_size=exp_dim,
+                           num_layers=num_layers,
+                           batch_first=True)
+        self.TimeDistributed = nn.Conv1d(exp_dim,
+                                        num_feat,
+                                        kernel_size=1)
+
+        
+    def forward(self, item):
+        if self.v: 
+            item, _ = self.Dl1(item)
+            print(item.shape, "1st decoder layer output shape")
+            item, _ = self.Dl2(item)
+            print(item.shape, "2nd decoder layer output shape")
+            item = torch.movedim(item, 1,2)
+            print(item.shape, "move dim shape")
+            item = self.TimeDistributed(item)
+            print(item.shape, "conv1d shape (time distributed)")
+            item = torch.movedim(item, 1,2)
+            print(item.shape, "final output shape")
+            return item
+        else:
+            item, _ = self.Dl1(item)
+            item, _ = self.Dl2(item)
+            item = torch.movedim(item, 1,2)
+            item = self.TimeDistributed(item)
+            item = torch.movedim(item, 1,2)
+            return item
+
+
+
+class AEric(nn.Module):
+    def __init__(self,sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False):
+        super().__init__()
+        self.Encoder = Encoder_Moreno(sq_len, num_feat, exp_dim, compr_dim, num_layers, v=v)
+        self.Decoder = Decoder_Moreno(sq_len, num_feat, exp_dim, compr_dim, num_layers, v=v)
+
+    
+    def forward(self, item):
+        encoded = self.Encoder(item)
+        decoded = self.Decoder(encoded)
+        return decoded
+
