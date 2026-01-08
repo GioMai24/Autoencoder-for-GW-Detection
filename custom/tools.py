@@ -45,7 +45,7 @@ def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multiva
         scaler.step(optim)
         scaler.update()
         # loss = np.sqrt(loss.item()) # if need
-        epoch_loss += loss
+        epoch_loss += loss.item()
     return epoch_loss / len(dataloader)
 
 
