@@ -136,3 +136,7 @@ Perché? Perché sì. Vorrei dare un ordine alle cose. È opinabile.
 
 ## Gio, 5/01
 Lavorando in `paperAE`. Ho creato del codice per visualizzare la ricostruzione dei modelli (`reconstructions.ipynb`), ho importato in custom/models.py anche il modello di gg per vedere se il suo modello trainato ricostruiva bene. Non sembra ed ho molta paura.
+
+## Gigi 14/01
+
+vari studi optuna in questi giorni passati, studio optuna fatto e sembra che sia cruciale il lr (1 layer, multifeat). Proseguito training di un modello king ma lr fa plateau. Trovato uno scheduler chiamato "ReduceLRonPlateau", sembra faccia al caso mio, aggiunto in tutte le funzioni e file del branch TimeEmbeddedAE.
