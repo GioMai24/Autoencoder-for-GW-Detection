@@ -140,3 +140,6 @@ Lavorando in `paperAE`. Ho creato del codice per visualizzare la ricostruzione d
 ## Gigi 14/01
 
 vari studi optuna in questi giorni passati, studio optuna fatto e sembra che sia cruciale il lr (1 layer, multifeat). Proseguito training di un modello king ma lr fa plateau. Trovato uno scheduler chiamato "ReduceLRonPlateau", sembra faccia al caso mio, aggiunto in tutte le funzioni e file del branch TimeEmbeddedAE.
+
+## Gio, 28/01
+Creato un nuovo modello di AE che è la copia di paperAE, ma con un'implementazione abbastanza banale di skip connection, non ho idea se siano davvero skip connections quelle che ho fatto, ma adesso lo provo.
