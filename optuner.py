@@ -18,7 +18,7 @@ import custom.tools as tl
 if torch.cuda.is_available():
     device = torch.device('cuda')
     torch.backends.cudnn.benchmark = True
-else: device = torch.device('cpu')
+else: raise ValueError("cuda is not available?!")
 print(f'{device=}')
 
 ## Useful parameters:
@@ -43,16 +43,17 @@ artifact_path = f"{main_dir}artifacts/"
 artifact_store = optuna.artifacts.FileSystemArtifactStore(base_path=artifact_path)
 
 def objective(trial:optuna.Trial):
-    loss_func = nn.MSELoss()
-    model = mod.LSTMAEUni().to(device)
-    model = torch.compile(model)
-    
     # Trial choices
+    dropout = trial.suggest_float("dropout", 0, 0.75, step=0.25)
     optim_name = trial.suggest_categorical("optimizer", ['Adam', 'SGD', 'RMSprop', 'NAdam'])
-    lr = trial.suggest_float("learning_rate", 1e-5, 1e-1, log=True)
+    lr = trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True)
     clip = trial.suggest_float('clip', .2, 5)
-    decay = trial.suggest_categorical('decay', [0, 1e-6, 1e-4, 1e-5])
+    decay = trial.suggest_categorical('decay', [0, 1e-4, 1e-3, 1e-2, .1])
     
+    loss_func = nn.MSELoss()
+    model = mod.DeepAE(h_s1=128, n_l1=2, h_s2=32, n_l2=2, h_s3=8, n_l3=3, dropout=dropout).to(device)
+    model = torch.compile(model)
+        
     if optim_name == 'SGD':
         momentum = trial.suggest_float("momentum", 0, 0.9, step=0.1)
         nesterov = trial.suggest_categorical('nesterov', [True, False]) if momentum > 0 else False
@@ -82,5 +83,5 @@ def objective(trial:optuna.Trial):
 
 optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
 # to change model, just change study_name, don't touch storage
-study = optuna.create_study(direction='minimize', study_name='UnivariatEric', storage=optuna_url, load_if_exists=True)
+study = optuna.create_study(direction='minimize', study_name='Deep1282_322_83', storage=optuna_url, load_if_exists=True)
 study.optimize(objective, n_trials=30)

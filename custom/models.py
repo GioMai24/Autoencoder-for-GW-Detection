@@ -136,21 +136,19 @@ class AEric(nn.Module):
 
 
 class ResAE(nn.Module):
-    def __init__(self, skip_input=False):
+    def __init__(self, dropout=0):
         super().__init__()
-        self.skip_input = skip_input
-        self.El1 = nn.LSTM(input_size=1, hidden_size=32, num_layers=3, batch_first=True)
-        self.El2 = nn.LSTM(input_size=32, hidden_size=8, num_layers=3, batch_first=True)  
-        self.Dl1 = nn.LSTM(input_size=8, hidden_size=8, num_layers=3, batch_first=True)
-        self.Dl2 = nn.LSTM(input_size=8, hidden_size=32, num_layers=3, batch_first=True)
+        self.El1 = nn.LSTM(input_size=1, hidden_size=32, num_layers=3, batch_first=True, dropout=dropout)
+        self.El2 = nn.LSTM(input_size=32, hidden_size=8, num_layers=3, batch_first=True, dropout=dropout)  
+        self.Dl1 = nn.LSTM(input_size=8, hidden_size=8, num_layers=3, batch_first=True, dropout=dropout)
+        self.Dl2 = nn.LSTM(input_size=8, hidden_size=32, num_layers=3, batch_first=True, dropout=dropout)
         self.TimeDistributed = nn.Conv1d(in_channels=32, out_channels=1, kernel_size=1)
 
     def forward(self, x):
         ## Encoding
         # print(f'Input {inp.shape=}')
-        if self.skip_input: inp = x.clone()
         x, _ = self.El1(x)  # Send whole output (corresponds to 100x32 in paper)
-        res1 = x.clone()  # save to skip
+        # res1 = x.clone()  # save to skip
         # print(f"First LSTM out {x.shape=}")
         _, (x, _) = self.El2(x)  # Send last output (corresponds to whole[-1], has 1 value for each layer (3)) I guess the paper takes only the last of these x[-1]
         # print(f"Second LSTM out {x[-1].shape=}")
@@ -167,13 +165,54 @@ class ResAE(nn.Module):
         x = x + res2  # skip
         x, _ = self.Dl2(x)
         # print(f"Second LSTM out {x.shape=}")
-        x = x + res1  # skip
+        # x = x + res1  # skip
         x = torch.movedim(x, 1, 2)
         # print(f"3D transposed {x.shape=}")
         x = self.TimeDistributed(x)
         # print(f'Convoluted {x.shape=}')
         x = torch.movedim(x, 1, 2)
         # print(f'Back to original dim {x.shape=}')
-        if self.skip_input: x = x + inp  # skip
         return x
         
+
+class DeepAE(nn.Module):
+    def __init__(self, h_s1, n_l1, h_s2, n_l2, h_s3, n_l3, dropout):
+        super().__init__()
+        self.El1 = nn.LSTM(input_size=1, hidden_size=h_s1, num_layers=n_l1, batch_first=True, dropout=dropout)
+        self.El2 = nn.LSTM(input_size=h_s1, hidden_size=h_s2, num_layers=n_l2, batch_first=True, dropout=dropout)
+        self.El3 = nn.LSTM(input_size=h_s2, hidden_size=h_s3, num_layers=n_l3, batch_first=True, dropout=dropout)
+        
+        self.Dl1 = nn.LSTM(input_size=h_s3, hidden_size=h_s3, num_layers=n_l3, batch_first=True, dropout=dropout)
+        self.Dl2 = nn.LSTM(input_size=h_s3, hidden_size=h_s2, num_layers=n_l2, batch_first=True, dropout=dropout)
+        self.Dl3 = nn.LSTM(input_size=h_s2, hidden_size=h_s1, num_layers=n_l1, batch_first=True, dropout=dropout)
+        self.TimeDistributed = nn.Conv1d(in_channels=h_s1, out_channels=1, kernel_size=1)
+
+    def forward(self, x):
+        ## Encoding
+        # print(f'Input {x.shape=}')
+        x, _ = self.El1(x)
+        # print(f"First LSTM out {x.shape=}")
+        x, _ = self.El2(x)
+        # print(f"Second LSTM out {x.shape=}")
+        _, (x, _) = self.El3(x)
+        # print(f"Third LSTM out {x[-1].shape=}")
+        
+        ## Repeating
+        x = x[-1].unsqueeze(1).repeat(1, 100, 1)  # Tensor.unsqueeze(x) adds a dimension to x position, to have batch dim back.
+        # print(f"Repeated {x.shape=}")
+
+        # ## Decoding
+        # print("Decoding")
+        x, _ = self.Dl1(x)
+        # print(f"First LSTM out {x.shape=}")
+        x, _ = self.Dl2(x)
+        # print(f"Second LSTM out {x.shape=}")
+        x, _ = self.Dl3(x)
+        # print(f"Third LSTM out {x.shape=}")
+        x = torch.movedim(x, 1, 2)
+        # print(f"3D transposed {x.shape=}")
+        x = self.TimeDistributed(x)
+        # print(f'Convoluted {x.shape=}')
+        x = torch.movedim(x, 1, 2)
+        # print(f'Back to original dim {x.shape=}')
+        return x
