@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as op
 from torch.amp import GradScaler
 from torch.utils.data import DataLoader
+import pickle
 # custom
 import custom.tools as tl
 import custom.models as mod
@@ -12,11 +13,11 @@ import custom.models as mod
 if torch.cuda.is_available():
     device = torch.device('cuda')
     torch.backends.cudnn.benchmark = True
-else: device = torch.device('cpu')
+else: raise ValueError("cuda is not available?!")
 print(f'{device=}')
 
-last_save = torch.load('/mnt/eph/data/optuna/artifacts/ba4a7fec-42c2-4b9f-a9cb-bc4f448671b1', weights_only=False)
-save_path = '/mnt/eph/uni_feat_model_stuff/trial_20/'
+last_save = torch.load('/mnt/eph/data/optuna/artifacts/89629025-6a7b-4bcf-bdf1-fdc78c08be07', weights_only=False)
+save_path = '/mnt/eph/deepsea_optune/trial_16/'
 num_epochs = 30
 ## Useful parameters:
 batch_size = last_save['train_loader_params']['batch_size']
@@ -35,14 +36,14 @@ val_loader = DataLoader(val, batch_size=batch_size, pin_memory=True, num_workers
 
 
 loss_func = nn.MSELoss()
-model = mod.LSTMAEUni().to(device)
+model = mod.DeepAE(h_s1=128, n_l1=2, h_s2=32, n_l2=2, h_s3=8, n_l3=3, dropout=.75).to(device)
 model = torch.compile(model)
 model.load_state_dict(last_save['model_state_dict'])
 
 # Trial choices
-optim_name = 'NAdam'
-lr = 0.0009419995643886475
-clip = 4.964217914740257
+optim_name = 'Adam'
+lr = 0.0007722518306537922
+clip = 0.21645622686423727
 decay = 0
 if optim_name == 'SGD':
     momentum = 0
@@ -55,7 +56,7 @@ else: optim = getattr(op, optim_name)(model.parameters(), lr=lr, weight_decay=de
 optim.load_state_dict(last_save['optimizer_state_dict'])
 
 losses = last_save['losses']
-losses['train'] = [loss.item() for loss in losses['train']]  # if old train_epoch function lacking .item()
+# losses['train'] = [loss.item() for loss in losses['train']]  # if old train_epoch function lacking .item()
 scaler = GradScaler()
 scaler.load_state_dict(last_save['scaler_state_dict'])
 for epoch in range(last_epoch + 1, (tot_epochs := last_epoch + num_epochs + 1)):
