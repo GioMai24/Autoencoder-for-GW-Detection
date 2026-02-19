@@ -41,41 +41,48 @@ class LSTMAEUni(nn.Module):
 
 
 class Encoder_Moreno(nn.Module):
-    def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False):
+    def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False, reinit=False):
         super().__init__()
-        ## Useful quantities
         self.v = v
         self.sq_len = sq_len
         self.El1 = nn.LSTM(input_size=num_feat, 
                            hidden_size=exp_dim,
                            num_layers=num_layers,
                            batch_first=True)
+        self.ln1 = nn.LayerNorm(exp_dim) 
+        ## Layernorm and not batchnorm???
+        ## https://stackoverflow.com/questions/45493384/is-it-normal-to-use-batch-normalization-in-rnn-lstm/45495331#45495331
         self.El2 = nn.LSTM(input_size=exp_dim,
                            hidden_size=compr_dim, 
                            num_layers=num_layers,
                            batch_first=True)
+        self.ln2 = nn.LayerNorm(compr_dim)
 
-    
+           
     def forward(self, item):
         if self.v: 
             print(item.shape, "Input shape")
-            item, h_c = self.El1(item)
+            item, _ = self.El1(item)
+            item = self.ln1(item)
             print(item.shape, "1st encoder layer output shape")
-            item, h_c = self.El2(item)
+            item, (h_n,c_n) = self.El2(item)
+            item = self.ln2(item)
             print(item.shape, "2nd encoder layer output shape")
-            item = item[:,-1,:]
+            item = item[:,-1,:]#torch.mean(item, dim=1) # too aggressive? seq2seq uses item[:,-1;:]
             print(item.shape, "return sequence= False analog")
             item = item[:,None,:]
             item = item.repeat(1, self.sq_len, 1)
             print(item.shape, "repeat vector sq_len times")
-            return item
+            return item, (h_n,c_n)
         else:
-            item, h_c = self.El1(item)
-            item, h_c = self.El2(item)
-            item = item[:,-1,:]
+            item, _ = self.El1(item)
+            item = self.ln1(item)
+            item, (h_n,c_n) = self.El2(item)
+            item = self.ln2(item)
+            item = torch.mean(item, dim=1)
             item = item[:,None,:]
             item = item.repeat(1, self.sq_len,1)
-            return item
+            return item, (h_n,c_n)
 
 
 
@@ -83,12 +90,12 @@ class Decoder_Moreno(nn.Module):
     def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False):
         super().__init__()
         self.v = v
-        ## Useful quantities
         self.sq_len = sq_len
         self.Dl1 = nn.LSTM(input_size=compr_dim, 
                            hidden_size=compr_dim,
                            num_layers=num_layers,
                            batch_first=True)
+        self.ln1 = nn.LayerNorm(compr_dim)
         self.Dl2 = nn.LSTM(input_size=compr_dim,
                            hidden_size=exp_dim,
                            num_layers=num_layers,
@@ -98,9 +105,10 @@ class Decoder_Moreno(nn.Module):
                                         kernel_size=1)
 
         
-    def forward(self, item):
+    def forward(self, item, encoder_state):
         if self.v: 
-            item, _ = self.Dl1(item)
+            item, _ = self.Dl1(item, encoder_state)
+            item = self.ln1(item)
             print(item.shape, "1st decoder layer output shape")
             item, _ = self.Dl2(item)
             print(item.shape, "2nd decoder layer output shape")
@@ -112,7 +120,8 @@ class Decoder_Moreno(nn.Module):
             print(item.shape, "final output shape")
             return item
         else:
-            item, _ = self.Dl1(item)
+            item, _ = self.Dl1(item, encoder_state)
+            item = self.ln1(item)
             item, _ = self.Dl2(item)
             item = torch.movedim(item, 1,2)
             item = self.TimeDistributed(item)
@@ -121,16 +130,42 @@ class Decoder_Moreno(nn.Module):
 
 
 
-class AEric(nn.Module):
+class AEric2(nn.Module):
     def __init__(self,sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False):
         super().__init__()
         self.Encoder = Encoder_Moreno(sq_len, num_feat, exp_dim, compr_dim, num_layers, v=v)
         self.Decoder = Decoder_Moreno(sq_len, num_feat, exp_dim, compr_dim, num_layers, v=v)
+        self._reinitialize()
 
+    def _reinitialize(self):
+        """
+        Tensorflow/Keras-like initialization
+        from: https://www.kaggle.com/code/junkoda/pytorch-lstm-with-tensorflow-like-initialization
+        useful bc u set forget gate to remember more things and since base lstm init is inversely proportional to hidden size
+        (All the weights and biases are initialized from U(-sqrt(k),sqrt(k)) where k=1/hidden_size)
+        """
+        for name, p in self.named_parameters():
+            if 'lstm' in name:
+                if 'weight_ih' in name:
+                    nn.init.xavier_uniform_(p.data)
+                elif 'weight_hh' in name:
+                    nn.init.orthogonal_(p.data)
+                elif 'bias_ih' in name:
+                    p.data.fill_(0)
+                    # Set forget-gate bias to 1
+                    n = p.size(0)
+                    p.data[(n // 4):(n // 2)].fill_(1)
+                elif 'bias_hh' in name:
+                    p.data.fill_(0)
+            elif 'TimeDistributed' in name:
+                if 'weight' in name:
+                    nn.init.kaiming_uniform_(p.data)
+                elif 'bias' in name:
+                    p.data.fill_(0)
     
     def forward(self, item):
-        encoded = self.Encoder(item)
-        decoded = self.Decoder(encoded)
+        encoded, hidden_state = self.Encoder(item)
+        decoded = self.Decoder(encoded, hidden_state)
         return decoded
 
 

@@ -24,8 +24,6 @@ class h5set(Dataset):
             self.dataset = h5.File(self.path, 'r', libver='latest', locking=False)
         item = torch.tensor(self.dataset[self.name][idx], dtype=torch.float32)
         return item.unfold(0, self.win_len, self.win_stride) if self.win_len is not None else item
-## 325k noise --> 25k test, 75k val, 225k train
-# 25k test
 
 
 def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multivariate):
@@ -50,7 +48,7 @@ def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multiva
 
 
 
-def val_epoch(model, device, dataloader, loss_fn, multivariate):
+def val_epoch(model, device, dataloader, loss_fn, multivariate, scheduler=None):
     model.eval()
     epoch_loss = 0
     with torch.no_grad():
@@ -61,11 +59,29 @@ def val_epoch(model, device, dataloader, loss_fn, multivariate):
                 loss = loss_fn(output, batch_data)
             # loss = np.sqrt(loss.item())
             epoch_loss += loss.item()
+    if scheduler is not None: scheduler.step()
     return epoch_loss / len(dataloader)
 
 
+def test_function(model, device, dataloader, multivariate):
+    model.eval()
+    loss_ew = torch.nn.MSELoss(reduction='none')
+    #loss_tot = torch.nn.MSELoss(reduction='mean')
+    losses = []
+    #tot_losses = []
+    with torch.no_grad():
+        for batch_data in tqdm(dataloader):
+            batch_data = batch_data.to(device) if multivariate else batch_data.reshape(-1, 100, 1).to(device)
+            with torch.autocast(device_type='cuda', dtype=torch.float16): output = model(batch_data)
+            element_wise_loss = loss_ew(output, batch_data)
+            segment_loss = element_wise_loss.mean(dim=2)
+            losses.append(segment_loss.cpu())
+        all_window_losses = torch.cat(losses, dim=0)
+    return all_window_losses
 
-def save_everything(model,optimizer, train_loader, val_loader,scaler, losses,epoch,clip, save_path):
+
+
+def save_everything_gio(model,optimizer, train_loader, val_loader,scaler, losses,epoch,clip, save_path):
     train_set_params = train_loader.dataset.__dict__
     t_set_param_keep = ['path', 'name', 'win_len', 'win_stride']
     t_set_save = {k: train_set_params[k] for k in t_set_param_keep}
@@ -100,7 +116,7 @@ def save_everything(model,optimizer, train_loader, val_loader,scaler, losses,epo
 
 
 
-def load_everything(pth_file, optimizer):
+def load_everything_gio(pth_file, optimizer):
     saved = torch.load(pth_file, weights_only=False)
     
     path = saved['train_set_params']['path']
@@ -138,3 +154,89 @@ def load_everything(pth_file, optimizer):
     losses = saved['losses']
     epoch = saved['epoch']
     return train_set, val_set, train_loader, val_loader, model, optimizer, scaler, clip, losses, epoch
+
+
+def save_everything_gg(model,optimizer, train_loader, val_loader,scaler, losses,epoch,clip, scheduler,save_path):
+    train_set_params = train_loader.dataset.__dict__
+    t_set_param_keep = ['path', 'name', 'win_len', 'win_stride']
+    t_set_save = {k: train_set_params[k] for k in t_set_param_keep}
+
+    train_loader_params = train_loader.__dict__
+    tl_pkeep = ['batch_size','num_workers','pin_memory','drop_last','persistent_workers']
+    tl_save = {k: train_loader_params[k] for k in tl_pkeep}
+
+    val_set_params = val_loader.dataset.__dict__
+    v_set_save = {k: val_set_params[k] for k in t_set_param_keep}
+
+    val_loader_params = val_loader.__dict__
+    vl_save = {k: val_loader_params[k] for k in tl_pkeep}
+
+    model_state_dict = model.state_dict()
+    optimizer_state_dict = optimizer.state_dict()
+    scaler_state_dict = scaler.state_dict()
+    num_layers = model.Encoder.El1.num_layers
+
+    scheduler_state_dict = scheduler.state_dict()
+
+    checkpoint = { 'train_set_params': t_set_save,
+                  'train_loader_params': tl_save,
+                  'val_set_params': v_set_save,
+                  'val_loader_params': vl_save,
+                  'model_state_dict': model_state_dict,
+                  'optimizer_state_dict': optimizer_state_dict,
+                  'scaler_state_dict': scaler_state_dict,
+                  'losses': losses,
+                  'epoch':epoch,
+                  'clip': clip,
+                  'num_layers':num_layers,
+                  'scheduler_state_dict': scheduler_state_dict
+                }
+    torch.save(checkpoint, save_path)
+
+def load_everything_gg(pth_file, optimizer, device):
+    saved = torch.load(pth_file, weights_only=False)
+    
+    path = saved['train_set_params']['path']
+    dataset_name = saved['train_set_params']['name']
+    win_len = saved['train_set_params']['win_len']
+    win_stride = saved['train_set_params']['win_stride']
+    train_set = h5set(path,win_len=win_len, win_stride=win_stride, name=dataset_name) 
+
+    path = saved['val_set_params']['path']
+    dataset_name = saved['val_set_params']['name']
+    win_len = saved['val_set_params']['win_len']
+    win_stride = saved['val_set_params']['win_stride']
+    val_set = h5set(path,win_len=win_len, win_stride=win_stride, name=dataset_name)
+
+    batch_size = saved['train_loader_params']['batch_size']
+    num_workers = saved['train_loader_params']['num_workers']
+    train_shuffle=True
+    val_shuffle=False
+    persistent_workers = True#saved['train_loader_params']['persistent_workers']
+    pin_memory = saved['train_loader_params']['pin_memory']
+    drop_last = saved['train_loader_params']['drop_last']
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=train_shuffle, pin_memory=pin_memory, num_workers=num_workers, persistent_workers=persistent_workers, drop_last=drop_last)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size, shuffle=val_shuffle, pin_memory=pin_memory, num_workers=num_workers, persistent_workers=persistent_workers, drop_last=drop_last)
+    sq_len = train_set.__getitem__(0).shape[0]
+    input_size =  train_set.__getitem__(0).shape[1]
+    num_layers = saved['num_layers']
+    clip = saved['clip']
+    model = AEric2(sq_len=sq_len, num_feat=1*input_size, exp_dim=16*input_size, compr_dim=4*win_len, num_layers=num_layers).to(device)
+    model = torch.compile(model)
+    model_state = saved['model_state_dict']
+    model.load_state_dict(model_state)
+    optimiz = optimizer(model.parameters())
+    optimiz.load_state_dict(saved['optimizer_state_dict'])
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimiz, gamma=0.98)
+    if 'scheduler_state_dict' in saved:
+        scheduler.load_state_dict(saved['scheduler_state_dict'])
+    else:
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiz, mode='min', factor=0.5, patience=10)
+    scaler = GradScaler()
+    scaler.load_state_dict(saved['scaler_state_dict'])
+    losses = saved['losses']
+    epoch = saved['epoch']
+    return train_set, val_set, train_loader, val_loader, model, optimiz, scaler, clip, losses, epoch, scheduler
+
+
+
