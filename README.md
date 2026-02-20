@@ -16,3 +16,6 @@ The development of the optuna and training scripts listed below ran in parallel 
 
 ### `model_inspector.ipynb`
 Jupyter notebook to inspect best models' results: training, validation, and test losses, and reconstructions.
+
+### `daenv.yml`
+Conda environment used to run the code.
