@@ -143,3 +143,6 @@ vari studi optuna in questi giorni passati, studio optuna fatto e sembra che sia
 
 ## Gio, 28/01
 Creato un nuovo modello di AE che è la copia di paperAE, ma con un'implementazione abbastanza banale di skip connection, non ho idea se siano davvero skip connections quelle che ho fatto, ma adesso lo provo.
+
+## Gio, 20/02
+Sono accadute tante cose credo che non abbiamo molto registrato. Oggi ho mergiato tutti i rami in `devel`. Ho tenuto TimeEmbeddedAE in attesa che gg dia il via libera.
