@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+"""Train the best models. To be changed for each run as needed (univariate version, see README)."""
 import torch 
 import torch.nn as nn
 import torch.optim as op

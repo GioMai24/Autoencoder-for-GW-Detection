@@ -1,9 +1,23 @@
+"""Autoencoder models built with PyTorch modules."""
 import os
 import torch 
 import torch.nn as nn
 
 
 class LSTMAEUni(nn.Module):
+    """
+    Original Moreno AE as described in 'https://arxiv.org/abs/2107.12698'.
+
+    Attributes
+    ----------
+    El* : nn.LSTM
+        Encoding layers.
+    Dl* : nn.LSTM
+        Decoding layers.
+    TimeDistributed : nn.Conv1d
+        Mimics keras.layers.TimeDistributed behaviour.
+    """
+    
     def __init__(self):
         super().__init__()
         self.El1 = nn.LSTM(input_size=1, hidden_size=32, num_layers=3, batch_first=True)
@@ -17,11 +31,11 @@ class LSTMAEUni(nn.Module):
         # print(f'Input {x.shape=}')
         x, _ = self.El1(x)  # Send whole output (corresponds to 100x32 in paper)
         # print(f"First LSTM out {x.shape=}")
-        _, (x, _) = self.El2(x)  # Send last output (corresponds to whole[-1], has 1 value for each layer (3)) I guess the paper takes only the last of these x[-1]
+        _, (x, _) = self.El2(x)  # Send last output (corresponds to whole[-1], has 1 value for each layer (3))
         # print(f"Second LSTM out {x[-1].shape=}")
 
         ## Repeating
-        x = x[-1].unsqueeze(1).repeat(1, 100, 1)  # Tensor.unsqueeze(x) adds a dimension to x position, to have batch dim back.  ## gio method
+        x = x[-1].unsqueeze(1).repeat(1, 100, 1)  # Tensor.unsqueeze(x) adds a dimension to x position, to have batch dim back.
         # print(f"Repeated {x.shape=}")
 
         ## Decoding
@@ -40,8 +54,172 @@ class LSTMAEUni(nn.Module):
 
 
 
+class DeepAE(nn.Module):
+    """
+    As LSTMAEuni, but deeper.
+
+    Attributes
+    ----------
+    El* : nn.LSTM
+        Encoding layers.
+    Dl* : nn.LSTM
+        Decoding layers.
+    TimeDistributed : nn.Conv1d
+        Mimics keras.layers.TimeDistributed behaviour.
+    """
+    
+    def __init__(self, h_s1, n_l1, h_s2, n_l2, h_s3, n_l3, dropout):
+        """
+        Initialization.
+
+        Parameters
+        ----------
+        h_s* : int
+            Hidden feature dimension size of the *-th LSTM block.
+        n_l* : int
+            Number of layers of the *-th LSTM block.
+        dropout : float
+            Dropout applied to each LSTM block.
+        """
+        super().__init__()
+        self.El1 = nn.LSTM(input_size=1, hidden_size=h_s1, num_layers=n_l1, batch_first=True, dropout=dropout)
+        self.El2 = nn.LSTM(input_size=h_s1, hidden_size=h_s2, num_layers=n_l2, batch_first=True, dropout=dropout)
+        self.El3 = nn.LSTM(input_size=h_s2, hidden_size=h_s3, num_layers=n_l3, batch_first=True, dropout=dropout)
+        
+        self.Dl1 = nn.LSTM(input_size=h_s3, hidden_size=h_s3, num_layers=n_l3, batch_first=True, dropout=dropout)
+        self.Dl2 = nn.LSTM(input_size=h_s3, hidden_size=h_s2, num_layers=n_l2, batch_first=True, dropout=dropout)
+        self.Dl3 = nn.LSTM(input_size=h_s2, hidden_size=h_s1, num_layers=n_l1, batch_first=True, dropout=dropout)
+        self.TimeDistributed = nn.Conv1d(in_channels=h_s1, out_channels=1, kernel_size=1)
+
+    def forward(self, x):
+        ## Encoding
+        # print(f'Input {x.shape=}')
+        x, _ = self.El1(x)
+        # print(f"First LSTM out {x.shape=}")
+        x, _ = self.El2(x)
+        # print(f"Second LSTM out {x.shape=}")
+        _, (x, _) = self.El3(x)
+        # print(f"Third LSTM out {x[-1].shape=}")
+        
+        ## Repeating
+        x = x[-1].unsqueeze(1).repeat(1, 100, 1)  # Tensor.unsqueeze(x) adds a dimension to x position, to have batch dim back.
+        # print(f"Repeated {x.shape=}")
+
+        # ## Decoding
+        # print("Decoding")
+        x, _ = self.Dl1(x)
+        # print(f"First LSTM out {x.shape=}")
+        x, _ = self.Dl2(x)
+        # print(f"Second LSTM out {x.shape=}")
+        x, _ = self.Dl3(x)
+        # print(f"Third LSTM out {x.shape=}")
+        x = torch.movedim(x, 1, 2)
+        # print(f"3D transposed {x.shape=}")
+        x = self.TimeDistributed(x)
+        # print(f'Convoluted {x.shape=}')
+        x = torch.movedim(x, 1, 2)
+        # print(f'Back to original dim {x.shape=}')
+        return x
+
+
+
+class ResAE(nn.Module):
+    """
+    As LSTMAEuni, with skip connections.
+
+    Attributes
+    ----------
+    El* : nn.LSTM
+        Encoding layers.
+    Dl* : nn.LSTM
+        Decoding layers.
+    TimeDistributed : nn.Conv1d
+        Mimics keras.layers.TimeDistributed behaviour.
+    """
+    
+    def __init__(self, dropout):
+        """
+        Initialization
+
+        Parameters
+        ----------
+        dropout : float
+            Dropout applied to each LSTM block.
+        """
+        super().__init__()
+        self.El1 = nn.LSTM(input_size=1, hidden_size=32, num_layers=3, batch_first=True, dropout=dropout)
+        self.El2 = nn.LSTM(input_size=32, hidden_size=8, num_layers=3, batch_first=True, dropout=dropout)  
+        self.Dl1 = nn.LSTM(input_size=8, hidden_size=8, num_layers=3, batch_first=True, dropout=dropout)
+        self.Dl2 = nn.LSTM(input_size=8, hidden_size=32, num_layers=3, batch_first=True, dropout=dropout)
+        self.TimeDistributed = nn.Conv1d(in_channels=32, out_channels=1, kernel_size=1)
+
+    def forward(self, x):
+        ## Encoding
+        # print(f'Input {inp.shape=}')
+        x, _ = self.El1(x)  # Send whole output (corresponds to 100x32 in paper)
+        # res1 = x.clone()  # save to skip
+        # print(f"First LSTM out {x.shape=}")
+        _, (x, _) = self.El2(x)  # Send last output (corresponds to whole[-1], has 1 value for each layer (3)) I guess the paper takes only the last of these x[-1]
+        # print(f"Second LSTM out {x[-1].shape=}")
+
+        ## Repeating
+        x = x[-1].unsqueeze(1).repeat(1, 100, 1)  # Tensor.unsqueeze(x) adds a dimension to x position, to have batch dim back.
+        # print(f"Repeated {x.shape=}")
+        res2 = x.clone()  # save to skip
+
+        ## Decoding
+        # print("Decoding")
+        x, _ = self.Dl1(x)
+        # print(f"First LSTM out {x.shape=}")
+        x = x + res2  # skip
+        x, _ = self.Dl2(x)
+        # print(f"Second LSTM out {x.shape=}")
+        # x = x + res1  # skip
+        x = torch.movedim(x, 1, 2)
+        # print(f"3D transposed {x.shape=}")
+        x = self.TimeDistributed(x)
+        # print(f'Convoluted {x.shape=}')
+        x = torch.movedim(x, 1, 2)
+        # print(f'Back to original dim {x.shape=}')
+        return x
+
+
+
 class Encoder_Moreno(nn.Module):
-    def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False, reinit=False):
+    """
+    Encoder module for the multivariate implementation Aeric2 below.
+
+    Attributes
+    ----------
+    v : bool
+        Activate verbosity to check layers' output.
+    sq_len : int
+        Length of the input sequence.
+    El* : nn.LSTM
+        Encoding layers.
+    ln* : nn.LayerNorm
+        Normalization layers.
+    """
+    
+    def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False):
+        """
+        Initialization.
+
+        Parameters
+        ----------
+        sq_len : int
+            Length of the input sequence.
+        num_feat : int
+            Feature dimension of the input sequence.
+        exp_dim : int
+            Hidden feature dimension size of the first LSTM block.
+        compr_dim : int
+            Hidden feature dimension size of the last LSTM block.
+        num_layers : int
+            Number of layers of each LSTM block.
+        v : bool
+            Verbosity.            
+        """
         super().__init__()
         self.v = v
         self.sq_len = sq_len
@@ -50,8 +228,6 @@ class Encoder_Moreno(nn.Module):
                            num_layers=num_layers,
                            batch_first=True)
         self.ln1 = nn.LayerNorm(exp_dim) 
-        ## Layernorm and not batchnorm???
-        ## https://stackoverflow.com/questions/45493384/is-it-normal-to-use-batch-normalization-in-rnn-lstm/45495331#45495331
         self.El2 = nn.LSTM(input_size=exp_dim,
                            hidden_size=compr_dim, 
                            num_layers=num_layers,
@@ -85,9 +261,43 @@ class Encoder_Moreno(nn.Module):
             return item, (h_n,c_n)
 
 
-
 class Decoder_Moreno(nn.Module):
+    """
+    Decoder module for the multivariate implementation Aeric2 below.
+
+    Attributes
+    ----------
+    sq_len : int
+        Length of the input sequence.
+    v : bool
+        Activate verbosity to check layers' output.
+    Dl* : nn.LSTM
+        Encoding layers.
+    ln* : nn.LayerNorm
+        Normalization layers.
+    TimeDistributed : nn.Conv1d
+        Mimics keras.layers.TimeDistributed behaviour.
+    """
+    
     def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False):
+        """
+        Initialization.
+
+        Parameters
+        ----------
+        sq_len : int
+            Length of the input sequence.
+        num_feat : int
+            Feature dimension of the input sequence.
+        exp_dim : int
+            Hidden feature dimension size of the first LSTM block.
+        compr_dim : int
+            Hidden feature dimension size of the last LSTM block.
+        num_layers : int
+            Number of layers of each LSTM block.
+        v : bool
+            Verbosity.            
+        """
         super().__init__()
         self.v = v
         self.sq_len = sq_len
@@ -129,9 +339,37 @@ class Decoder_Moreno(nn.Module):
             return item
 
 
-
 class AEric2(nn.Module):
+    """
+    Multivariate autoencoder implementation.
+    
+    Attributes
+    ----------
+    Encoder : Encoder_Moreno
+        Encoder network.
+    Decoder : Decoder_Moreno
+        Decoder network.
+    """
+    
     def __init__(self,sq_len, num_feat, exp_dim, compr_dim, num_layers, v=False):
+        """
+        Initialization.
+
+        Parameters
+        ----------
+        sq_len : int
+            Length of the input sequence.
+        num_feat : int
+            Feature dimension of the input sequence.
+        exp_dim : int
+            Hidden feature dimension size of the first LSTM block.
+        compr_dim : int
+            Hidden feature dimension size of the last LSTM block.
+        num_layers : int
+            Number of layers of each LSTM block.
+        v : bool
+            Verbosity.            
+        """
         super().__init__()
         self.Encoder = Encoder_Moreno(sq_len, num_feat, exp_dim, compr_dim, num_layers, v=v)
         self.Decoder = Decoder_Moreno(sq_len, num_feat, exp_dim, compr_dim, num_layers, v=v)
@@ -139,9 +377,8 @@ class AEric2(nn.Module):
 
     def _reinitialize(self):
         """
-        Tensorflow/Keras-like initialization
-        from: https://www.kaggle.com/code/junkoda/pytorch-lstm-with-tensorflow-like-initialization
-        useful bc u set forget gate to remember more things and since base lstm init is inversely proportional to hidden size
+        Tensorflow/Keras-like initialization from: 'https://www.kaggle.com/code/junkoda/pytorch-lstm-with-tensorflow-like-initialization'.
+        Set forget gate to remember more things. Base LSTM init is inversely proportional to hidden size.
         (All the weights and biases are initialized from U(-sqrt(k),sqrt(k)) where k=1/hidden_size)
         """
         for name, p in self.named_parameters():
@@ -167,87 +404,3 @@ class AEric2(nn.Module):
         encoded, hidden_state = self.Encoder(item)
         decoded = self.Decoder(encoded, hidden_state)
         return decoded
-
-
-
-class ResAE(nn.Module):
-    def __init__(self, dropout=0):
-        super().__init__()
-        self.El1 = nn.LSTM(input_size=1, hidden_size=32, num_layers=3, batch_first=True, dropout=dropout)
-        self.El2 = nn.LSTM(input_size=32, hidden_size=8, num_layers=3, batch_first=True, dropout=dropout)  
-        self.Dl1 = nn.LSTM(input_size=8, hidden_size=8, num_layers=3, batch_first=True, dropout=dropout)
-        self.Dl2 = nn.LSTM(input_size=8, hidden_size=32, num_layers=3, batch_first=True, dropout=dropout)
-        self.TimeDistributed = nn.Conv1d(in_channels=32, out_channels=1, kernel_size=1)
-
-    def forward(self, x):
-        ## Encoding
-        # print(f'Input {inp.shape=}')
-        x, _ = self.El1(x)  # Send whole output (corresponds to 100x32 in paper)
-        # res1 = x.clone()  # save to skip
-        # print(f"First LSTM out {x.shape=}")
-        _, (x, _) = self.El2(x)  # Send last output (corresponds to whole[-1], has 1 value for each layer (3)) I guess the paper takes only the last of these x[-1]
-        # print(f"Second LSTM out {x[-1].shape=}")
-
-        ## Repeating
-        x = x[-1].unsqueeze(1).repeat(1, 100, 1)  # Tensor.unsqueeze(x) adds a dimension to x position, to have batch dim back.
-        # print(f"Repeated {x.shape=}")
-        res2 = x.clone()  # save to skip
-
-        ## Decoding
-        # print("Decoding")
-        x, _ = self.Dl1(x)
-        # print(f"First LSTM out {x.shape=}")
-        x = x + res2  # skip
-        x, _ = self.Dl2(x)
-        # print(f"Second LSTM out {x.shape=}")
-        # x = x + res1  # skip
-        x = torch.movedim(x, 1, 2)
-        # print(f"3D transposed {x.shape=}")
-        x = self.TimeDistributed(x)
-        # print(f'Convoluted {x.shape=}')
-        x = torch.movedim(x, 1, 2)
-        # print(f'Back to original dim {x.shape=}')
-        return x
-        
-
-class DeepAE(nn.Module):
-    def __init__(self, h_s1, n_l1, h_s2, n_l2, h_s3, n_l3, dropout):
-        super().__init__()
-        self.El1 = nn.LSTM(input_size=1, hidden_size=h_s1, num_layers=n_l1, batch_first=True, dropout=dropout)
-        self.El2 = nn.LSTM(input_size=h_s1, hidden_size=h_s2, num_layers=n_l2, batch_first=True, dropout=dropout)
-        self.El3 = nn.LSTM(input_size=h_s2, hidden_size=h_s3, num_layers=n_l3, batch_first=True, dropout=dropout)
-        
-        self.Dl1 = nn.LSTM(input_size=h_s3, hidden_size=h_s3, num_layers=n_l3, batch_first=True, dropout=dropout)
-        self.Dl2 = nn.LSTM(input_size=h_s3, hidden_size=h_s2, num_layers=n_l2, batch_first=True, dropout=dropout)
-        self.Dl3 = nn.LSTM(input_size=h_s2, hidden_size=h_s1, num_layers=n_l1, batch_first=True, dropout=dropout)
-        self.TimeDistributed = nn.Conv1d(in_channels=h_s1, out_channels=1, kernel_size=1)
-
-    def forward(self, x):
-        ## Encoding
-        # print(f'Input {x.shape=}')
-        x, _ = self.El1(x)
-        # print(f"First LSTM out {x.shape=}")
-        x, _ = self.El2(x)
-        # print(f"Second LSTM out {x.shape=}")
-        _, (x, _) = self.El3(x)
-        # print(f"Third LSTM out {x[-1].shape=}")
-        
-        ## Repeating
-        x = x[-1].unsqueeze(1).repeat(1, 100, 1)  # Tensor.unsqueeze(x) adds a dimension to x position, to have batch dim back.
-        # print(f"Repeated {x.shape=}")
-
-        # ## Decoding
-        # print("Decoding")
-        x, _ = self.Dl1(x)
-        # print(f"First LSTM out {x.shape=}")
-        x, _ = self.Dl2(x)
-        # print(f"Second LSTM out {x.shape=}")
-        x, _ = self.Dl3(x)
-        # print(f"Third LSTM out {x.shape=}")
-        x = torch.movedim(x, 1, 2)
-        # print(f"3D transposed {x.shape=}")
-        x = self.TimeDistributed(x)
-        # print(f'Convoluted {x.shape=}')
-        x = torch.movedim(x, 1, 2)
-        # print(f'Back to original dim {x.shape=}')
-        return x

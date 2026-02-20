@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+"""Optuna script to search for optimal hyperparameters. To be changed for each model as needed (univariate version, see README)."""
 import os
 import sys
 import torch 
@@ -75,13 +75,12 @@ def objective(trial:optuna.Trial):
         losses['val'].append(val_loss)
 
     save_path = f'{main_dir}checkpoint.pt'
-    tl.save_everything(model, optim, train_loader, val_loader, scaler, losses, epoch, clip, save_path)
+    tl.save_everything_uni(model, optim, train_loader, val_loader, scaler, losses, epoch, clip, save_path)
 
     art_id = optuna.artifacts.upload_artifact(artifact_store=artifact_store, file_path=save_path, study_or_trial=trial.study)
     trial.set_user_attr('everything_id', art_id)
     return val_loss
 
 optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
-# to change model, just change study_name, don't touch storage
 study = optuna.create_study(direction='minimize', study_name='Deep1282_322_83', storage=optuna_url, load_if_exists=True)
 study.optimize(objective, n_trials=30)
