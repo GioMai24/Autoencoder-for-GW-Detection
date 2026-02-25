@@ -59,7 +59,7 @@ class h5set(Dataset):
         return item.unfold(0, self.win_len, self.win_stride) if self.win_len is not None else item
 
 
-def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multivariate):
+def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multivariate, reg = True):
     """
     Model training phase.
 
@@ -97,6 +97,7 @@ def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multiva
         with torch.autocast(device_type=str(device), dtype=torch.float16):
             output = model(batch_data)
             loss = loss_fn(output, batch_data)
+            if reg: loss += torch.clamp(1/output.std(), min=0.0, max=100.0)
         scaler.scale(loss).backward()
         scaler.unscale_(optim)
         if clip > 0: torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
@@ -108,7 +109,7 @@ def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multiva
 
 
 
-def val_epoch(model, device, dataloader, loss_fn, multivariate, scheduler=None):
+def val_epoch(model, device, dataloader, loss_fn, multivariate,reg=True, scheduler=None):
     """
     Model validation phase.
 
@@ -140,6 +141,7 @@ def val_epoch(model, device, dataloader, loss_fn, multivariate, scheduler=None):
             with torch.autocast(device_type=str(device), dtype=torch.float16):
                 output = model(batch_data)
                 loss = loss_fn(output, batch_data)
+                if reg: loss += torch.clamp(1/output.std(), min=0.0, max=100.0)
             # loss = np.sqrt(loss.item())  # if need
             epoch_loss += loss.item()
     if scheduler is not None: scheduler.step()

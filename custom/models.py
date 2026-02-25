@@ -68,7 +68,7 @@ class DeepAE(nn.Module):
         Mimics keras.layers.TimeDistributed behaviour.
     """
     
-    def __init__(self, h_s1, n_l1, h_s2, n_l2, h_s3, n_l3, dropout):
+    def __init__(self, h_s1, n_l1, h_s2, n_l2, h_s3, n_l3, dropout, reg = True):
         """
         Initialization.
 
@@ -90,6 +90,7 @@ class DeepAE(nn.Module):
         self.Dl2 = nn.LSTM(input_size=h_s3, hidden_size=h_s2, num_layers=n_l2, batch_first=True, dropout=dropout)
         self.Dl3 = nn.LSTM(input_size=h_s2, hidden_size=h_s1, num_layers=n_l1, batch_first=True, dropout=dropout)
         self.TimeDistributed = nn.Conv1d(in_channels=h_s1, out_channels=1, kernel_size=1)
+        self.reg = reg
 
     def forward(self, x):
         ## Encoding
@@ -119,6 +120,7 @@ class DeepAE(nn.Module):
         # print(f'Convoluted {x.shape=}')
         x = torch.movedim(x, 1, 2)
         # print(f'Back to original dim {x.shape=}')
+        if self.reg: x = nn.Sigmoid()(x)  
         return x
 
 
@@ -137,7 +139,7 @@ class ResAE(nn.Module):
         Mimics keras.layers.TimeDistributed behaviour.
     """
     
-    def __init__(self, dropout):
+    def __init__(self, dropout, reg):
         """
         Initialization
 
@@ -152,6 +154,7 @@ class ResAE(nn.Module):
         self.Dl1 = nn.LSTM(input_size=8, hidden_size=8, num_layers=3, batch_first=True, dropout=dropout)
         self.Dl2 = nn.LSTM(input_size=8, hidden_size=32, num_layers=3, batch_first=True, dropout=dropout)
         self.TimeDistributed = nn.Conv1d(in_channels=32, out_channels=1, kernel_size=1)
+        self.reg = reg
 
     def forward(self, x):
         ## Encoding
@@ -181,6 +184,7 @@ class ResAE(nn.Module):
         # print(f'Convoluted {x.shape=}')
         x = torch.movedim(x, 1, 2)
         # print(f'Back to original dim {x.shape=}')
+        if self.reg == True: x = nn.Sigmoid()(x)
         return x
 
 
@@ -404,3 +408,109 @@ class AEric2(nn.Module):
         encoded, hidden_state = self.Encoder(item)
         decoded = self.Decoder(encoded, hidden_state)
         return decoded
+
+
+####  non definitivo
+
+class Encoder_large(nn.Module):
+    def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, bottleneck_len=16):
+        super().__init__()
+        self.sq_len = sq_len
+        self.bottleneck_len = bottleneck_len
+        
+        self.El1 = nn.LSTM(input_size=num_feat, hidden_size=exp_dim, num_layers=num_layers, batch_first=True)
+        self.ln1 = nn.LayerNorm(exp_dim) 
+        self.El2 = nn.LSTM(input_size=exp_dim, hidden_size=compr_dim, num_layers=num_layers, batch_first=True)
+        self.ln2 = nn.LayerNorm(compr_dim)
+        
+        # Max Pooling to preserve wave peaks/amplitudes safely
+        self.pool = nn.AdaptiveMaxPool1d(bottleneck_len)
+           
+    def forward(self, item):
+        item, _ = self.El1(item)
+        item = self.ln1(item)
+        item, (h_n, c_n) = self.El2(item)
+        item = self.ln2(item)
+        
+        # Transpose for spatial pooling: (Batch, Channels, Length)
+        item = item.transpose(1, 2)           
+        item = self.pool(item)                
+        item = item.transpose(1, 2)           # Back to (Batch, Length, Channels)
+        
+        return item, (h_n, c_n)
+
+
+class Decoder_large(nn.Module):
+    def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, bottleneck_len=16):
+        super().__init__()
+        self.sq_len = sq_len
+        
+        # The spontaneous, learnable time stretch
+        self.time_stretch = nn.Linear(bottleneck_len, sq_len)
+        
+        self.Dl1 = nn.LSTM(input_size=compr_dim, hidden_size=compr_dim, num_layers=num_layers, batch_first=True)
+        self.ln1 = nn.LayerNorm(compr_dim)
+        self.Dl2 = nn.LSTM(input_size=compr_dim, hidden_size=exp_dim, num_layers=num_layers, batch_first=True)
+        
+        self.TimeDistributed = nn.Conv1d(exp_dim, num_feat, kernel_size=1)
+
+    def forward(self, item, encoder_state):
+        # 1. Let the network LEARN how to stretch 16 steps back to 389
+        item = item.transpose(1, 2)           
+        item = self.time_stretch(item)        
+        item = item.transpose(1, 2)           
+        
+        # 2. Pass through LSTMs (using the Encoder's final state to jumpstart it!)
+        item, _ = self.Dl1(item, encoder_state)
+        item = self.ln1(item)
+        item, _ = self.Dl2(item)
+        
+        # 3. Transpose for Conv1d, then transpose back to return
+        item = item.transpose(1, 2)           
+        item = self.TimeDistributed(item)     
+        item = item.transpose(1, 2)           
+        
+        return item
+
+
+class AE_multi_large(nn.Module):
+    def __init__(self, sq_len, num_feat, exp_dim, compr_dim, num_layers, bottleneck_len=16):
+        super().__init__()
+        # Pass bottleneck_len into both Encoder and Decoder
+        self.Encoder = Encoder_large(sq_len, num_feat, exp_dim, compr_dim, num_layers, bottleneck_len)
+        self.Decoder = Decoder_large(sq_len, num_feat, exp_dim, compr_dim, num_layers, bottleneck_len)
+        self._reinitialize()
+
+    def _reinitialize(self):
+        """
+        Tensorflow/Keras-like initialization
+        """
+        for name, p in self.named_parameters():
+            if 'lstm' in name:
+                if 'weight_ih' in name:
+                    nn.init.xavier_uniform_(p.data)
+                elif 'weight_hh' in name:
+                    nn.init.orthogonal_(p.data)
+                elif 'bias_ih' in name:
+                    p.data.fill_(0)
+                    # Set forget-gate bias to 1
+                    n = p.size(0)
+                    p.data[(n // 4):(n // 2)].fill_(1)
+                elif 'bias_hh' in name:
+                    p.data.fill_(0)
+            elif 'time_stretch' in name: # Initialize the new stretch layer
+                if 'weight' in name:
+                    nn.init.xavier_uniform_(p.data)
+                elif 'bias' in name:
+                    p.data.fill_(0)
+            elif 'TimeDistributed' in name:
+                if 'weight' in name:
+                    nn.init.kaiming_uniform_(p.data)
+                elif 'bias' in name:
+                    p.data.fill_(0)
+                    
+    def forward(self, item):
+        encoded, hidden_state = self.Encoder(item)
+        decoded = self.Decoder(encoded, hidden_state)
+        return decoded
+    
