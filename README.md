@@ -3,6 +3,9 @@ LSTM autoencoder implementation to detect Gravitational Waves, based and expandi
 
 ## Files Description
 
+### `report.pdf`
+Project report.
+
 ### `scripts` folder
 The development of the optuna and training scripts listed below ran in parallel for the 'univariate' and 'multivariate' modes described in the report. Merging the two resulted unfeasible, they do however share the main structure.
 - `TTVmaker.py`: 'Training, Test, and Validation' sets creation. Also greatly reduces the amount of data used from the original dataset, using it whole would have not been practical.
