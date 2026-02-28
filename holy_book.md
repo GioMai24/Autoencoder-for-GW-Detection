@@ -146,3 +146,12 @@ Creato un nuovo modello di AE che è la copia di paperAE, ma con un'implementazi
 
 ## Gio, 20/02
 Sono accadute tante cose credo che non abbiamo molto registrato. Oggi ho mergiato tutti i rami in `devel`. Ho tenuto TimeEmbeddedAE in attesa che gg dia il via libera.
+
+
+## Gio & GG, 28/02
+Sono di nuovo accadute un sacco di cose che non abbiamo di nuovo registrato, a causa dello stress dovuto alla necessità di performare durante la sessione di esami universitaria e il conseguente bisogno di sopprimere l'intenso rumore di pensieri snervanti con fiumi di alcol.
+
+MA, abbiamo finito il progetto, abbiamo ottenuti dei risultati e implementato soluzioni che teoricamente ci piacevano, ma praticamente non hanno molto funzionato. È stato comunque interessante e spero che il professore valuti l'inventiva considerando il sangue che abbiamo lasciato sugli schermi dei nostri portatili. È quasi successo non figurativamente.
+
+Until we meet again.
+Gio & GG
