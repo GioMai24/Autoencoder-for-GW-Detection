@@ -1,5 +1,5 @@
 # <p align='center'> Autoencoder for GW Detection </p>
-LSTM autoencoder implementation to detect Gravitational Waves, based and expanding on the work of [E. A. Moreno et al.](https://arxiv.org/abs/2107.12698)
+LSTM autoencoder implementation to detect Gravitational Waves, based and expanding on the work of [E. A. Moreno et al.](https://arxiv.org/abs/2107.12698).
 
 ## Files Description
 
@@ -15,7 +15,14 @@ The development of the optuna and training scripts listed below ran in parallel 
 - `tools.py`: helper functions for the scripts.
 
 ### `model_inspector.ipynb`
-Jupyter notebook to inspect best models' results: training, validation, and test losses, and reconstructions.
+Jupyter notebook to inspect best models' results: losses, reconstructions, residuals, and anomaly detection performance.
 
 ### `daenv.yml`
-Conda environment used to run the code.
+Conda environment used to run the code. The main packages to be installed are:
+- python=3.12
+- torch=2.9
+- optuna
+- matplotlib
+- numpy
+- h5py
+- tqdm

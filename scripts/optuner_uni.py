@@ -43,7 +43,6 @@ artifact_path = f"{main_dir}artifacts/"
 artifact_store = optuna.artifacts.FileSystemArtifactStore(base_path=artifact_path)
 
 def objective(trial:optuna.Trial):
-    # Trial choices
     dropout = trial.suggest_float("dropout", 0, 0.75, step=0.25)
     optim_name = trial.suggest_categorical("optimizer", ['Adam', 'SGD', 'RMSprop', 'NAdam'])
     lr = trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True)

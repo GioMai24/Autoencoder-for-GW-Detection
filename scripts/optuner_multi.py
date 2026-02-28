@@ -32,6 +32,7 @@ persistent_workers = False#True if num_workers>0 else False
 main_dir = "/mnt/eph/multi_feat_model_stuff/"
 h5file= "L1_70_12_6_6.h5"
 h5_path = f"/mnt/eph/data/{h5file}"
+
 ## DB
 optuna_url = f"sqlite:///{main_dir}optuna_study.db"
 artifact_path = f"{main_dir}artifacts/"
@@ -41,13 +42,12 @@ trials_dir = f"{main_dir}trials/"
 def objective(trial:optuna.Trial):
     num_epoch = num_epochs
     loss_func= nn.MSELoss()
-    win_len = 48 # DOes not makes sense to tune win_len bc is structural of the net. trial.suggest_categorical('win_len', choices=[64,96, 128])
+    win_len = trial.suggest_categorical('win_len', [48, 64, 96, 128])
 
     win_stride = trial.suggest_categorical("win_stride", [0.875, 1.0])
     win_stride = int(win_len*win_stride)
-    train = tl.h5set(h5_path,win_len=win_len, win_stride=win_stride, name='A') #50k rows
-    val = tl.h5set(h5_path,win_len=win_len, win_stride=win_stride, name='B') #10k rows
-    #test = h5set(h5_path,win_len=win_len, win_stride=win_stride, name='C') #10k rows
+    train = tl.h5set(h5_path,win_len=win_len, win_stride=win_stride, name='A')
+    val = tl.h5set(h5_path,win_len=win_len, win_stride=win_stride, name='B')
     train_loader = DataLoader(train,
                 batch_size=batch_size,
                 shuffle=True,
@@ -66,12 +66,10 @@ def objective(trial:optuna.Trial):
                 )
     num_layers =2
 
-    # Recompute sequence length and input size for this dataset (depends on win_stride)
     sample = train.__getitem__(0)
     sq_len = sample.shape[0]
 
 
-    ## autoencoder to device # did before.....
     autoencoder = mod.AEric2(
         sq_len=sq_len,
         num_feat=1*win_len,
@@ -115,7 +113,6 @@ def objective(trial:optuna.Trial):
         if trial.should_prune():
             raise optuna.TrialPruned()
 
-    # ensure trials directory exists and save the model there
     os.makedirs(trials_dir, exist_ok=True)
     save_path = f"{trials_dir}item2_{trial.number}.pt"
     tl.save_everything_multi(autoencoder,optim,train_loader, val_loader,scaler,losses, epoch, clip,scheduler, save_path)

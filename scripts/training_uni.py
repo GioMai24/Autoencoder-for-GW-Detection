@@ -56,7 +56,7 @@ else: optim = getattr(op, optim_name)(model.parameters(), lr=lr, weight_decay=de
 optim.load_state_dict(last_save['optimizer_state_dict'])
 
 losses = last_save['losses']
-if type(losses['train'][0]) is torch.Tensor: losses['train'] = [loss.item() for loss in losses['train']]  # if old train_epoch function lacking .item()
+if type(losses['train'][0]) is torch.Tensor: losses['train'] = [loss.item() for loss in losses['train']]  # if old train_epoch function missing .item()
 scaler = GradScaler()
 scaler.load_state_dict(last_save['scaler_state_dict'])
 for epoch in range(last_epoch + 1, (tot_epochs := last_epoch + num_epochs + 1)):

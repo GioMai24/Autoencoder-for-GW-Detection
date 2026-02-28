@@ -59,7 +59,7 @@ class h5set(Dataset):
         return item.unfold(0, self.win_len, self.win_stride) if self.win_len is not None else item
 
 
-def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multivariate, reg = True):
+def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multivariate, reg=True):
     """
     Model training phase.
 
@@ -81,6 +81,8 @@ def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multiva
         Clipping applied to the parameters' gradients.
     multivariate : bool
         Flag to switch between univariate or multivariate mode.
+    reg : bool
+        Apply custom regularization term (see report).
 
     Returns
     -------
@@ -91,9 +93,7 @@ def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multiva
     epoch_loss = 0
     for batch_data in tqdm(dataloader):
         optim.zero_grad()
-        # print(batch_data.element_size() * batch_data.nelement())
         batch_data = batch_data.to(device) if multivariate else batch_data.reshape(-1, 100, 1).to(device)
-        # print(batch_data.shape)
         with torch.autocast(device_type=str(device), dtype=torch.float16):
             output = model(batch_data)
             loss = loss_fn(output, batch_data)
@@ -103,13 +103,12 @@ def train_epoch(model, device, dataloader, loss_fn, optim, scaler, clip, multiva
         if clip > 0: torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
         scaler.step(optim)
         scaler.update()
-        # loss = np.sqrt(loss.item()) # if need
         epoch_loss += loss.item()
     return epoch_loss / len(dataloader)
 
 
 
-def val_epoch(model, device, dataloader, loss_fn, multivariate,reg=True, scheduler=None):
+def val_epoch(model, device, dataloader, loss_fn, multivariate, reg=True, scheduler=None):
     """
     Model validation phase.
 
@@ -125,6 +124,8 @@ def val_epoch(model, device, dataloader, loss_fn, multivariate,reg=True, schedul
         Pytorch MSELoss module.
     multivariate : bool
         Flag to switch between univariate or multivariate mode.
+    reg : bool
+        Apply custom regularization term (see report).
     scheduler : torch.optim.lr_scheduler
         LR scheduler to apply.
 
@@ -142,44 +143,9 @@ def val_epoch(model, device, dataloader, loss_fn, multivariate,reg=True, schedul
                 output = model(batch_data)
                 loss = loss_fn(output, batch_data)
                 if reg: loss += torch.clamp(1/output.std(), min=0.0, max=100.0)
-            # loss = np.sqrt(loss.item())  # if need
             epoch_loss += loss.item()
     if scheduler is not None: scheduler.step()
     return epoch_loss / len(dataloader)
-
-
-
-def test_function(model, device, dataloader):
-    """
-    Multivariate model test phase.
-    
-    Parameters
-    ----------
-    model : torch.nn.Module
-        Model to test.
-    device : torch.device
-        Device to use.
-    dataloader : torch.utils.data.Dataloader
-        Dataloader to use.
-        
-    Returns
-    -------
-    all_window_losses : np.array
-        Two dimensional numpy array. Rows are samples from the dataloader. Columns are time windows.
-    """
-    model.eval()
-    loss_ew = torch.nn.MSELoss(reduction='none')
-    #loss_tot = torch.nn.MSELoss(reduction='mean')
-    losses = []
-    with torch.no_grad():
-        for batch_data in tqdm(dataloader):
-            batch_data = batch_data.to(device)
-            with torch.autocast(device_type='cuda', dtype=torch.float16): output = model(batch_data)
-            element_wise_loss = loss_ew(output, batch_data)
-            segment_loss = element_wise_loss.mean(dim=2)
-            losses.append(segment_loss.cpu())
-        all_window_losses = torch.cat(losses, dim=0)
-    return all_window_losses
 
 
 
