@@ -1,0 +1,2 @@
+# exclude jupyter from git languages
+*.ipynb linguist-vendored
